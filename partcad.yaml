@@ -1,0 +1,114 @@
+# Technical drawings for PartCAD objects, drawn by draftwright.
+#
+# All three file types are declared under `render:`, and none under `export:`.
+# That is a statement about what they are, not a limitation:
+#
+#   `export:` is for files a CAD tool opens as a part or a sketch - geometry
+#             that another tool can go on working with.
+#   `render:` is for output files in general - a drawing, a picture, a report.
+#
+# A technical drawing is a document about a part, not the part, so it belongs
+# under `render:`. PartCAD reads `export:` as a fallback when a `render:` type
+# has no implementation, precisely because a part file also serves as an output
+# file; the converse is not true, and declaring a drawing under `export:` would
+# promise callers a part it cannot deliver.
+#
+# Nothing is lost by that: `pc export -t pdf` and `pc render -t pdf` both
+# produce the drawing, because the section a file type belongs to is decided by
+# where it is declared, not by which command asked for it.
+#
+# `svg` and `dxf` are implemented by `//builtin/render`, so declaring them here
+# replaces those implementations. `pdf` has no built-in implementation at all,
+# and declaring it here is what brings it into existence.
+
+name: /pub/render/draftwright
+desc: Technical drawings (PDF, SVG, DXF) produced by draftwright.
+
+docs:
+  intro: |
+    Fully annotated multi-view technical drawings - orthographic views,
+    dimensions, section views with ISO hatching, and a title block - produced
+    from any PartCAD part or assembly by
+    [draftwright](https://github.com/pzfreo/draftwright).
+
+    It replaces the built-in SVG and DXF renderers, whose output is a flat
+    projection of the shape, and adds PDF, which PartCAD has no built-in
+    implementation for.
+
+    The drawings are declared as `render:` types rather than `export:` ones: a
+    drawing is a document about a part, not a part. Both `pc render` and
+    `pc export` produce them all the same.
+  usage: |
+    Draw an object from any package, without changing that package:
+
+    ```shell
+    $ pc render -t pdf -e /pub/render/draftwright //your/package:bracket
+    $ pc render -t svg -e /pub/render/draftwright //your/package:bracket
+    ```
+
+    Or import this package and declare the file types, to draw every object of
+    your own package that way. Set any of draftwright's options as fields of
+    the file type - `title`, `number`, `scale`, `page`, `projection`, and the
+    rest - per package or per object.
+
+# What the sandbox this package's implementation runs in needs installed.
+#
+# Declared for the package rather than per file type: it is one implementation
+# behind all three, so it is one dependency, and PartCAD installs a package's
+# requirements into the runtime environment before it runs anything from that
+# package (`RuntimePython.prepare_for_package`).
+#
+# Only draftwright is named. It resolves its own CAD stack, and deliberately
+# so: its dependency markers pick the build123d/OCP pair that matches the
+# sandbox interpreter, and pinning PartCAD's own `build123d==0.11.1` /
+# `cadquery-ocp==7.9.3.1.1` on top of it would fight that resolution on the
+# 3.11 sandbox, where draftwright requires build123d<0.11. The shape crosses
+# the sandbox boundary as BREP, which does not care which of the two OCP builds
+# is on the other side.
+#
+# Anchored with `==` rather than left open so that a drawing produced today can
+# be produced again tomorrow; bump it deliberately.
+
+pythonRequirements:
+  - draftwright==0.4.3
+
+render:
+  pdf:
+    desc: A technical drawing of the object, as PDF.
+    path: render_draftwright.py
+    extension: pdf
+
+  svg:
+    desc: A technical drawing of the object, as SVG.
+    path: render_draftwright.py
+    extension: svg
+
+  dxf:
+    desc: A technical drawing of the object, as DXF.
+    path: render_draftwright.py
+    extension: dxf
+
+# Every other field of a file type is handed to the implementation as a
+# parameter, so draftwright's drawing options are set the same way. None are set
+# here: an unset one keeps draftwright's own default. Per package, or per object
+# to override the package:
+#
+#   render:
+#     pdf:
+#       title: Mounting Plate      # default: the object's name
+#       number: DWG-001
+#       tolerance: ISO 2768-m
+#       drawn_by: A. Engineer
+#       company: ACME Corp.
+#       material: AL 6061-T6
+#       revision: A
+#       date: "2026-08-09"
+#       scale: 2                   # 2:1; default: chosen to fit the page
+#       page: A3                   # or "WIDTHxHEIGHT" in mm
+#       projection: first          # or 'third'
+#       auto_dims: true            # false to place your own dimensions
+#       detail_view: true
+#       frame: false
+#       zones: false
+#       assembly: false
+#       pmi: off                   # 'report' or 'annotate' to use AP242 PMI
