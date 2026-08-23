@@ -70,7 +70,7 @@ docs:
 # be produced again tomorrow; bump it deliberately.
 
 pythonRequirements:
-  - draftwright==0.4.3
+  - draftwright==0.4.11
 
 render:
   pdf:
