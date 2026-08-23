@@ -27,10 +27,12 @@ and there is no `pdf` at all. With this package:
 
 PartCAD's two output sections are not two names for the same thing:
 
-- **`export:`** is for files another CAD tool opens as a **part or a sketch** —
-  geometry it can go on working with. STEP, BREP, STL, 3MF.
+- **`export:`** is for files PartCAD or other CAD tools open as a
+  **part or a sketch** - geometry it can go on working with. Examples for 2D:
+  DXF or SVG
 - **`render:`** is for **output files in general** — a drawing, a picture, a
-  report. SVG, PNG, DXF.
+  report. Example: PNGa JPEG, PDF. But any 'export' type can be used as well
+  even if there is no intention to use it as input to CAD tools.
 
 A technical drawing is a *document about* a part, not the part. Dimensioned
 views, a title block and a section arrow are for a person to read; nothing
