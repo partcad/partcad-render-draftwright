@@ -65,17 +65,17 @@ DRAWING_PARAMETERS = (
 def _shape(wrapped):
     """The shape PartCAD sent, as something build123d can hand to draftwright.
 
-    'Shape.cast()' is the honest conversion: it picks the build123d class that
-    matches the topology, so a compound stays a compound. Older build123d
-    releases do not expose it, and there the historical fallback is to borrow
-    any Shape instance and replace what it wraps.
+    Borrowed the way PartCAD's own renderers do it (see the built-in
+    '//builtin/render/render_svg.py'): take any Shape instance and replace what
+    it wraps. Deliberately not 'b3d.Shape.cast()', which reads like the honest
+    downcast but is an abstract method with an empty body on the base class -
+    on build123d 0.11 it answers None instead of raising, so a 'try/except'
+    around it never fires and every drawing dies inside draftwright with
+    'TypeError: expected str, bytes or os.PathLike object, not NoneType'.
+
+    Nothing here needs the precise build123d class anyway: draftwright checks
+    that it was handed a Shape and reads the geometry off '.wrapped'.
     """
-    cast = getattr(b3d.Shape, "cast", None)
-    if callable(cast):
-        try:
-            return cast(wrapped)
-        except Exception:
-            pass
     shape = b3d.Solid.make_box(1, 1, 1)
     shape.wrapped = wrapped
     return shape
