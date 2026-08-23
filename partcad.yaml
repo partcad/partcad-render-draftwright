@@ -21,7 +21,7 @@
 # replaces those implementations. `pdf` has no built-in implementation at all,
 # and declaring it here is what brings it into existence.
 
-name: /pub/render/draftwright
+name: //pub/feature/render/draftwright
 desc: Technical drawings (PDF, SVG, DXF) produced by draftwright.
 
 docs:
@@ -42,8 +42,8 @@ docs:
     Draw an object from any package, without changing that package:
 
     ```shell
-    $ pc render -t pdf -e /pub/render/draftwright //your/package:bracket
-    $ pc render -t svg -e /pub/render/draftwright //your/package:bracket
+    $ pc render -t pdf -e //pub/feature/render/draftwright //your/package:bracket
+    $ pc render -t svg -e //pub/feature/render/draftwright //your/package:bracket
     ```
 
     Or import this package and declare the file types, to draw every object of
