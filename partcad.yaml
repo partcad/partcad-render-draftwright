@@ -38,6 +38,25 @@ docs:
     The drawings are declared as `render:` types rather than `export:` ones: a
     drawing is a document about a part, not a part. Both `pc render` and
     `pc export` produce them all the same.
+
+    draftwright lints every sheet it builds, and anything it calls an error
+    fails the render: `pc render` exits non-zero and says what is wrong. The
+    file is still written, so the drawing being complained about can be looked
+    at.
+
+    The usual one is `overall_dim_withheld` - a part with enough features fills
+    both dimension strips of a view, and the overall width or depth then has
+    nowhere to go. Name the sheet, which is not the same as making it bigger:
+    with `page` unset draftwright fits the views and can leave the annotations
+    short of room, and naming a sheet fits the drawing to it. On a 90 x 60 plate
+    with four holes and a slot, `page: A4` lands on 1:2 and `page: A3` on 2:1,
+    and both place the overall width that an unset `page` dropped.
+
+    ```yaml
+    render:
+      pdf:
+        page: A3
+    ```
   usage: |
     Draw an object from any package, without changing that package:
 

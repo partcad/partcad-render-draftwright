@@ -22,7 +22,18 @@ hands it two globals and calls 'process()':
 Unlike the implementations that ship inside PartCAD, nothing here imports
 'wrapper_common': that module is a PartCAD internal, and a package published on
 its own should not be pinned to its shape. Failures are reported the documented
-way instead - by returning {"success": False, "exception": ...}.
+way instead - by returning {"success": False, "exception": ...}, and anything
+worth saying about a file that was still produced correctly by returning
+{"warnings": [...]}, which PartCAD logs against the object.
+
+What draftwright thinks of the drawing is reported through those two. It lints
+every sheet it builds and writes the result to its own logger; PartCAD relays a
+sandbox's stderr as one warning line, so an error there - a dimension that could
+not be placed, a label over a centreline - reached the user as log noise
+attached to a render that had reported success. 'process()' asks for the same
+critique through 'Drawing.lint()' and fails the render on anything draftwright
+calls an error, so 'pc render' exits non-zero instead of leaving behind a
+drawing that is quietly missing a dimension.
 
 draftwright derives the whole drawing from the solid: orthographic views,
 dimensions, a section view, and a title block. PartCAD only says which file to
@@ -104,6 +115,36 @@ def _parameters(request):
     return parameters
 
 
+def _critique(drawing):
+    """What draftwright says about the sheet it just built.
+
+    Returns '(errors, advisories)', each a list of lines. An 'error' severity is
+    draftwright refusing to stand behind the drawing - most often a measurement
+    it could not place, like the overall width when both dimension strips of a
+    view are full ('overall_dim_withheld'). That is not a warning: a drawing
+    missing an overall dimension is not a drawing anyone can work from.
+
+    Linting costs a second pass over an already-built sheet. It is asked for
+    rather than scraped out of draftwright's log because the log line is prose
+    and this is a decision.
+    """
+    try:
+        issues = drawing.lint()
+    except Exception as e:
+        # A critique that cannot be produced is not a failed drawing. Say so and
+        # let the file stand.
+        return [], ["draftwright could not lint the drawing: %s" % e]
+
+    errors, advisories = [], []
+    for issue in issues:
+        line = "[%s] %s: %s" % (issue.severity, issue.code, issue.message)
+        suggestion = getattr(issue, "suggestion", None)
+        if suggestion:
+            line += " -- %s" % suggestion
+        (errors if issue.severity == "error" else advisories).append(line)
+    return errors, advisories
+
+
 def process(path, request):
     try:
         file_format = _format_of(path)
@@ -127,7 +168,19 @@ def process(path, request):
         if not os.path.exists(path) or os.path.getsize(path) == 0:
             raise Exception("draftwright produced no %s file: %s" % (file_format.upper(), path))
 
-        return {"success": True, "exception": None}
+        # Judged after the file is written rather than before, so that a drawing
+        # draftwright will not stand behind is still there to be looked at. The
+        # render fails all the same.
+        errors, advisories = _critique(drawing)
+        if errors:
+            return {
+                "success": False,
+                "exception": "draftwright reports %d error(s) in the drawing (written to %s so it can be "
+                "inspected):\n  %s" % (len(errors), os.path.basename(path), "\n  ".join(errors)),
+                "warnings": advisories,
+            }
+
+        return {"success": True, "exception": None, "warnings": advisories}
 
     except Exception as e:
         return {"success": False, "exception": "".join(traceback.format_exception(type(e), e, e.__traceback__))}
