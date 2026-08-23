@@ -69,6 +69,7 @@ docs:
 # Anchored with `==` rather than left open so that a drawing produced today can
 # be produced again tomorrow; bump it deliberately.
 
+pythonVersion: "3.13"
 pythonRequirements:
   - draftwright==0.4.11
 
