@@ -57,6 +57,15 @@ docs:
       pdf:
         page: A3
     ```
+
+    Every file is written reproducibly: the order of the elements is settled
+    and the metadata the exporters otherwise take from the clock is pinned, so
+    two renders of an object that has not changed are byte-identical. A drawing
+    kept in a repository next to the model can then be diffed and checksummed -
+    `git diff` answers whether the drawing changed rather than when it was
+    rendered. It costs about a third of DXF export time again, and is not
+    optional: a drawing that changes when nothing changed is not worth the
+    export time it saves.
   usage: |
     Draw an object from any package, without changing that package:
 
@@ -86,11 +95,14 @@ docs:
 # is on the other side.
 #
 # Anchored with `==` rather than left open so that a drawing produced today can
-# be produced again tomorrow; bump it deliberately.
+# be produced again tomorrow; bump it deliberately. 0.4.16 is the floor as well
+# as the pin: it is the release that added `reproducible=`, which the
+# implementation asks for on every file it writes, and on 0.4.15 and earlier the
+# keyword is a `TypeError`.
 
 pythonVersion: "3.13"
 pythonRequirements:
-  - draftwright==0.4.11
+  - draftwright==0.4.16
 
 render:
   pdf:

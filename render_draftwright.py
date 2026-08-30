@@ -35,6 +35,22 @@ critique through 'Drawing.lint()' and fails the render on anything draftwright
 calls an error, so 'pc render' exits non-zero instead of leaving behind a
 drawing that is quietly missing a dimension.
 
+Every file is asked for reproducibly. draftwright's 'reproducible=' settles the
+order of the elements it writes and pins the metadata its exporters otherwise
+take from the clock - reportlab's /CreationDate and /ID in the PDF, ezdxf's
+$TDCREATE and the GUID pair in the DXF - so two renders of an object that has
+not changed are byte-identical. That is what makes a drawing worth keeping in a
+repository next to the model: 'git diff' answers whether the drawing changed,
+and a checksum answers it without opening the file. Without it PartCAD, which
+renders on demand, rewrites every drawing on every run.
+
+It is not free - draftwright measures the ordering at about a third of DXF
+export time again - and it is deliberately not one of the parameters below: a
+drawing that changes when nothing changed is not worth the export time it saves.
+draftwright refuses rather than degrades when it cannot produce a reproducible
+file, which is the right way round; it arrives here as a failed render instead
+of a file quietly stamped with the run that made it.
+
 draftwright derives the whole drawing from the solid: orthographic views,
 dimensions, a section view, and a title block. PartCAD only says which file to
 write and with what parameters.
@@ -156,11 +172,15 @@ def process(path, request):
         # without its extension makes it write exactly the file PartCAD asked
         # for.
         stem = os.path.splitext(path)[0]
-        drawing = build_drawing(_shape(request["wrapped"]), out=stem, **_parameters(request))
-        produced = drawing.export(stem, formats=(file_format,))
+        # Reproducibly, at both the seams draftwright offers it: 'build_drawing()'
+        # sets the drawing's own default and carries it through the repack that
+        # rebuilds the sheet, 'export()' settles the file actually being written.
+        drawing = build_drawing(_shape(request["wrapped"]), out=stem, reproducible=True, **_parameters(request))
+        produced = drawing.export(stem, formats=(file_format,), reproducible=True)
 
-        # The dict form is what 'formats=' returns; be tolerant of the legacy
-        # tuple in case an older draftwright is installed.
+        # The dict form is what 'formats=' returns. The tuple is the deprecated
+        # shape 'export()' falls back to when asked for no formats at all, which
+        # this never does; handled rather than assumed away.
         written = produced.get(file_format) if isinstance(produced, dict) else path
         if written and os.path.abspath(written) != os.path.abspath(path):
             os.replace(written, path)
