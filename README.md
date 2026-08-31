@@ -116,6 +116,34 @@ An option left out keeps draftwright's own default rather than one invented
 here. See [draftwright's documentation](https://github.com/pzfreo/draftwright)
 for what each of them means.
 
+## Reproducible output
+
+All three file types are written reproducibly. draftwright settles the order of
+the elements it writes and pins the metadata its exporters would otherwise take
+from the clock - reportlab's `/CreationDate` and `/ID` in the PDF, ezdxf's
+`$TDCREATE` and the `$VERSIONGUID`/`$FINGERPRINTGUID` pair in the DXF - so two
+renders of an object that has not changed are byte-identical:
+
+```bash
+pc render -t pdf -e //pub/feature/render/draftwright //your/package:bracket
+sha256sum bracket.pdf     # same digest tomorrow, on another machine
+```
+
+That is what makes a drawing worth keeping in a repository next to the model.
+`git diff` answers whether the drawing changed, not when it was rendered, and a
+checksum answers it without opening the file; PartCAD renders on demand, so
+without this every run rewrites every drawing.
+
+It is not free - draftwright measures the ordering at about a third of DXF
+export time again - and it is not one of the options above. Reproducibility is
+a property of the output this package promises, not a preference, and a drawing
+that changes when nothing changed is not worth the export time it saves.
+
+Two things follow. The date in the title block is only ever the `date` option;
+draftwright does not fill an unset one in from today, so it does not move. And
+if a reproducible file cannot be produced, the render fails and says so, rather
+than degrading to a file quietly stamped with the run that made it.
+
 ## Requirements
 
 - PartCAD with support for package-defined output implementations (the `path`
@@ -126,7 +154,7 @@ draftwright is declared as this package's Python requirement:
 
 ```yaml
 pythonRequirements:
-  - draftwright==0.4.3
+  - draftwright==0.4.16
 ```
 
 PartCAD installs a package's requirements into the sandbox interpreter it runs
@@ -134,6 +162,11 @@ that package's implementations in, before running any of them, so the runtime
 environment gets draftwright from PyPI and no copy of it lives here. It is
 declared once for the package rather than on each of the three file types
 because one implementation serves all three.
+
+The pin is exact so that a drawing produced today can be produced again
+tomorrow, and 0.4.16 is also the floor: it is the release that added the
+`reproducible=` the implementation asks for on every file, and on 0.4.15 and
+earlier that keyword is a `TypeError`.
 
 Only draftwright is named. It resolves its own CAD stack on purpose — its
 dependency markers pick the build123d/OCP pair that matches the sandbox
