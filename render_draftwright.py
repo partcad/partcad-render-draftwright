@@ -35,20 +35,35 @@ critique through 'Drawing.lint()' and fails the render on anything draftwright
 calls an error, so 'pc render' exits non-zero instead of leaving behind a
 drawing that is quietly missing a dimension.
 
-Every file is asked for reproducibly. draftwright's 'reproducible=' settles the
-order of the elements it writes and pins the metadata its exporters otherwise
-take from the clock - reportlab's /CreationDate and /ID in the PDF, ezdxf's
-$TDCREATE and the GUID pair in the DXF - so two renders of an object that has
-not changed are byte-identical. That is what makes a drawing worth keeping in a
-repository next to the model: 'git diff' answers whether the drawing changed,
-and a checksum answers it without opening the file. Without it PartCAD, which
-renders on demand, rewrites every drawing on every run.
+Whether a file is asked for reproducibly is the caller's to say, and it arrives
+in 'request["reproducible"]'. PartCAD puts that in every request it sends,
+whether or not the file type declared it, so it is read without a default of our
+own: a package writes
+
+    render:
+      pdf:
+        reproducible: true
+
+and it reaches here. That it is the same word on both sides is not a
+coincidence - draftwright had 'reproducible=' first, and PartCAD took the name
+for the protocol field precisely so that a package setting it once settles both
+ends.
+
+What it settles on this side: draftwright's 'reproducible=' fixes the order of
+the elements it writes and pins the metadata its exporters otherwise take from
+the clock - reportlab's /CreationDate and /ID in the PDF, ezdxf's $TDCREATE and
+the GUID pair in the DXF - so two renders of an object that has not changed are
+byte-identical. That is what makes a drawing worth keeping in a repository next
+to the model: 'git diff' answers whether the drawing changed, and a checksum
+answers it without opening the file.
 
 It is not free - draftwright measures the ordering at about a third of DXF
-export time again - and it is deliberately not one of the parameters below: a
-drawing that changes when nothing changed is not worth the export time it saves.
+export time again - which is why it is off unless asked for, matching PartCAD's
+own default. A drawing produced to be looked at and thrown away should not pay
+for it; one that is kept says so.
+
 draftwright refuses rather than degrades when it cannot produce a reproducible
-file, which is the right way round; it arrives here as a failed render instead
+file, which is the right way round: it arrives here as a failed render instead
 of a file quietly stamped with the run that made it.
 
 draftwright derives the whole drawing from the solid: orthographic views,
@@ -118,6 +133,24 @@ def _format_of(path):
     return extension
 
 
+def _reproducible(request):
+    """Whether this file has to come out the same every time it is written.
+
+    PartCAD's protocol field, read the way PartCAD reads it: a real boolean from
+    a 'partcad.yaml', and the name of one from a caller that is not YAML -- the
+    CLI and the JSON-RPC clients hand values through as they parsed them, and a
+    'reproducible' that arrived as the string "false" and was taken for true
+    would turn a guarantee off without saying so.
+
+    Not one of DRAWING_PARAMETERS: those are passed to 'build_drawing()'
+    untouched and this one is passed to 'export()' as well.
+    """
+    value = request.get("reproducible")
+    if isinstance(value, str):
+        return value.strip().lower() in ("true", "yes", "on", "1")
+    return bool(value)
+
+
 def _parameters(request):
     """The 'build_drawing()' keyword arguments this request asks for."""
     parameters = {name: request[name] for name in DRAWING_PARAMETERS if request.get(name) is not None}
@@ -172,11 +205,15 @@ def process(path, request):
         # without its extension makes it write exactly the file PartCAD asked
         # for.
         stem = os.path.splitext(path)[0]
-        # Reproducibly, at both the seams draftwright offers it: 'build_drawing()'
-        # sets the drawing's own default and carries it through the repack that
-        # rebuilds the sheet, 'export()' settles the file actually being written.
-        drawing = build_drawing(_shape(request["wrapped"]), out=stem, reproducible=True, **_parameters(request))
-        produced = drawing.export(stem, formats=(file_format,), reproducible=True)
+        # What the caller asked for, at both the seams draftwright offers it:
+        # 'build_drawing()' sets the drawing's own default and carries it through
+        # the repack that rebuilds the sheet, 'export()' settles the file
+        # actually being written. Both, because either alone leaves half of it:
+        # the element order comes from the first and the file metadata from the
+        # second.
+        reproducible = _reproducible(request)
+        drawing = build_drawing(_shape(request["wrapped"]), out=stem, reproducible=reproducible, **_parameters(request))
+        produced = drawing.export(stem, formats=(file_format,), reproducible=reproducible)
 
         # The dict form is what 'formats=' returns. The tuple is the deprecated
         # shape 'export()' falls back to when asked for no formats at all, which

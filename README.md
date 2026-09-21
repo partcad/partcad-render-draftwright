@@ -118,11 +118,29 @@ for what each of them means.
 
 ## Reproducible output
 
-All three file types are written reproducibly. draftwright settles the order of
-the elements it writes and pins the metadata its exporters would otherwise take
-from the clock - reportlab's `/CreationDate` and `/ID` in the PDF, ezdxf's
-`$TDCREATE` and the `$VERSIONGUID`/`$FINGERPRINTGUID` pair in the DXF - so two
-renders of an object that has not changed are byte-identical:
+All three file types can be written reproducibly, and `reproducible: true` is
+what asks for it:
+
+```yaml
+render:
+  pdf:
+    package: //pub/feature/render/draftwright
+    path: render_draftwright.py
+    reproducible: true
+```
+
+That is PartCAD's own protocol field rather than an option of this package's.
+PartCAD puts it in every request it sends, whether or not the file type declared
+it, and it means the same thing to every implementation there is; this one
+passes it straight to draftwright's `reproducible=`, which is the keyword it was
+named after. Set it once and both ends are settled -- on PartCAD's side the
+drawing it renders for you, on this side the file draftwright writes.
+
+With it, draftwright fixes the order of the elements it writes and pins the
+metadata its exporters would otherwise take from the clock - reportlab's
+`/CreationDate` and `/ID` in the PDF, ezdxf's `$TDCREATE` and the
+`$VERSIONGUID`/`$FINGERPRINTGUID` pair in the DXF - so two renders of an object
+that has not changed are byte-identical:
 
 ```bash
 pc render -t pdf -e //pub/feature/render/draftwright //your/package:bracket
@@ -134,15 +152,17 @@ That is what makes a drawing worth keeping in a repository next to the model.
 checksum answers it without opening the file; PartCAD renders on demand, so
 without this every run rewrites every drawing.
 
-It is not free - draftwright measures the ordering at about a third of DXF
-export time again - and it is not one of the options above. Reproducibility is
-a property of the output this package promises, not a preference, and a drawing
-that changes when nothing changed is not worth the export time it saves.
+It is off unless asked for, matching PartCAD's default, because it is not free:
+draftwright measures the ordering at about a third of DXF export time again. A
+drawing produced to be looked at and thrown away should not pay for that; one
+that is kept says so. (It used to be unconditional here, which made this the one
+implementation where the word meant something a package could not choose.)
 
-Two things follow. The date in the title block is only ever the `date` option;
-draftwright does not fill an unset one in from today, so it does not move. And
-if a reproducible file cannot be produced, the render fails and says so, rather
-than degrading to a file quietly stamped with the run that made it.
+Two things follow when it is on. The date in the title block is only ever the
+`date` option; draftwright does not fill an unset one in from today, so it does
+not move. And if a reproducible file cannot be produced, the render fails and
+says so, rather than degrading to a file quietly stamped with the run that made
+it.
 
 ## Requirements
 
@@ -164,9 +184,10 @@ declared once for the package rather than on each of the three file types
 because one implementation serves all three.
 
 The pin is exact so that a drawing produced today can be produced again
-tomorrow, and 0.4.16 is also the floor: it is the release that added the
-`reproducible=` the implementation asks for on every file, and on 0.4.15 and
-earlier that keyword is a `TypeError`.
+tomorrow, and 0.4.16 is also the floor: it is the release that added
+`reproducible=`, and on 0.4.15 and earlier that keyword is a `TypeError`. The
+implementation passes it on every file, whichever way the flag is set, so the
+floor holds even for a package that never asks for reproducible output.
 
 Only draftwright is named. It resolves its own CAD stack on purpose — its
 dependency markers pick the build123d/OCP pair that matches the sandbox
