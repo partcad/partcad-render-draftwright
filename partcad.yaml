@@ -97,28 +97,44 @@ docs:
 # Anchored with `==` rather than left open so that a drawing produced today can
 # be produced again tomorrow; bump it deliberately. 0.4.16 is the floor as well
 # as the pin: it is the release that added `reproducible=`, which the
-# implementation asks for on every file it writes, and on 0.4.15 and earlier the
-# keyword is a `TypeError`.
+# implementation passes on every file it writes - whichever way PartCAD's
+# `reproducible` flag is set, so the floor holds for a package that never asks
+# for it - and on 0.4.15 and earlier the keyword is a `TypeError`.
 
 pythonVersion: "3.13"
 pythonRequirements:
   - draftwright==0.4.16
+
+# `reproducible` is PartCAD's protocol field and not an option of this
+# package's: it reaches every implementation in every request, declared or not,
+# and it means the same thing in all of them. It is stated on each of the three
+# below, `false`, because that is what PartCAD's own built-in file types state
+# and because a reader comparing the two should find the same answer.
+#
+# It is passed straight through to draftwright's `reproducible=`, which is the
+# keyword PartCAD took the name from. A package that keeps its drawings in a
+# repository sets `reproducible: true` on the file type and gets a file that is
+# the same file every time; one that is only going to look at the drawing does
+# not pay for the ordering pass. See the README.
 
 render:
   pdf:
     desc: A technical drawing of the object, as PDF.
     path: render_draftwright.py
     extension: pdf
+    reproducible: false
 
   svg:
     desc: A technical drawing of the object, as SVG.
     path: render_draftwright.py
     extension: svg
+    reproducible: false
 
   dxf:
     desc: A technical drawing of the object, as DXF.
     path: render_draftwright.py
     extension: dxf
+    reproducible: false
 
 # Every other field of a file type is handed to the implementation as a
 # parameter, so draftwright's drawing options are set the same way. None are set
