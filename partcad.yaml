@@ -100,10 +100,26 @@ docs:
 # implementation passes on every file it writes - whichever way PartCAD's
 # `reproducible` flag is set, so the floor holds for a package that never asks
 # for it - and on 0.4.15 and earlier the keyword is a `TypeError`.
+#
+# reportlab and svglib are pinned beside it for the same reason, though
+# draftwright asks only for floors of them (`reportlab>=4.0`, `svglib>=1.5`):
+# they are what writes the PDF - draftwright draws the sheet as SVG, svglib
+# reads it into a reportlab drawing and reportlab writes the file - so the
+# bytes of a PDF are theirs. Left to the floors, a sandbox gets whatever was
+# newest the day it was provisioned, and a release of either can change every
+# PDF with nothing here having changed. reportlab 5.1.0 did, on 2026-10-22: it
+# moved the font a drawing starts out in from Times-Roman to Helvetica, which
+# drops an unused font resource and renumbers the objects after it
+# (partcad/partcad#840). Neither has interpreter markers to fight, unlike the
+# CAD stack above. A new pin is also how an existing sandbox learns of it:
+# PartCAD installs a requirement it has not recorded, and never resolves one
+# it has again.
 
 pythonVersion: "3.13"
 pythonRequirements:
   - draftwright==0.4.16
+  - reportlab==5.1.0
+  - svglib==2.3.2
 
 # `reproducible` is PartCAD's protocol field and not an option of this
 # package's: it reaches every implementation in every request, declared or not,
