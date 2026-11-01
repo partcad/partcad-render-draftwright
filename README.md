@@ -166,13 +166,15 @@ it.
 
 ## Requirements
 
-- PartCAD 0.8.123 or later. That is the first release published with
-  `reproducible` as a field of every request (partcad/partcad#682), which the
-  implementation reads with no default of its own. Package-defined output
-  implementations (the `path` field of a `render:` / `export:` file type, and
-  `-e` / `--options-package`) are older still. `partcad.yaml` states the floor
-  (`partcad: ">=0.8.123"`), so an older PartCAD refuses the package and names
-  the version it needs, rather than draw with it.
+- PartCAD 0.8.27 or later. That is the first release published after
+  partcad/partcad#541, which lets a package implement `pdf`. Package-defined
+  output implementations (the `path` field of a `render:` / `export:` file
+  type, and `-e` / `--options-package`) are older still. `partcad.yaml` states
+  the floor (`partcad: ">=0.8.27"`), so an older PartCAD refuses the package and
+  names the version it needs, rather than skip the PDF. `reproducible` does not
+  raise it. Before PartCAD made it a field of every request
+  (partcad/partcad#682, 0.8.116), it arrived as an ordinary parameter whenever
+  the file type stated it, and the implementation reads a missing one as false.
 - Nothing to install by hand.
 
 draftwright is declared as this package's Python requirement:
