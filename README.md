@@ -166,8 +166,15 @@ it.
 
 ## Requirements
 
-- PartCAD with support for package-defined output implementations (the `path`
-  field of a `render:` / `export:` file type, and `-e` / `--options-package`).
+- PartCAD 0.8.27 or later. That is the first release published after
+  partcad/partcad#541, which lets a package implement `pdf`. Package-defined
+  output implementations (the `path` field of a `render:` / `export:` file
+  type, and `-e` / `--options-package`) are older still. `partcad.yaml` states
+  the floor (`partcad: ">=0.8.27"`), so an older PartCAD refuses the package and
+  names the version it needs, rather than skip the PDF. `reproducible` does not
+  raise it. Before PartCAD made it a field of every request
+  (partcad/partcad#682, 0.8.116), it arrived as an ordinary parameter whenever
+  the file type stated it, and the implementation reads a missing one as false.
 - Nothing to install by hand.
 
 draftwright is declared as this package's Python requirement:
@@ -175,7 +182,12 @@ draftwright is declared as this package's Python requirement:
 ```yaml
 pythonRequirements:
   - draftwright==0.4.16
+  - reportlab==5.1.0
+  - svglib==2.3.2
 ```
+
+(reportlab and svglib are what write the PDF; `partcad.yaml` says why they are
+pinned beside draftwright.)
 
 PartCAD installs a package's requirements into the sandbox interpreter it runs
 that package's implementations in, before running any of them, so the runtime
@@ -189,7 +201,7 @@ tomorrow, and 0.4.16 is also the floor: it is the release that added
 implementation passes it on every file, whichever way the flag is set, so the
 floor holds even for a package that never asks for reproducible output.
 
-Only draftwright is named. It resolves its own CAD stack on purpose — its
+Nothing of the CAD stack is named. draftwright resolves its own on purpose — its
 dependency markers pick the build123d/OCP pair that matches the sandbox
 interpreter, and pinning PartCAD's own pair on top would fight that resolution
 on the 3.11 sandbox, where draftwright requires `build123d<0.11`. The shape

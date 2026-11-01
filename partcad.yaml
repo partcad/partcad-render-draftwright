@@ -24,6 +24,33 @@
 name: //pub/feature/render/draftwright
 desc: Technical drawings (PDF, SVG, DXF) produced by draftwright.
 
+# The PartCAD that lets a package implement `pdf`, which PartCAD has no
+# implementation of. It used to be held out of a package's file types for the
+# assembly instruction book, and was skipped silently, until
+# partcad/partcad#541. That shipped in 0.7.189, and 0.8.27 is the first release
+# published after it. Everything else this package needs is older:
+#   - a package implementing a file type itself, with `path:` on a `render:`
+#     type, and `-e` / `--options-package` (partcad/partcad#506, 0.7.174);
+#   - the implementing package's own `pythonVersion` and `pythonRequirements`
+#     deciding the sandbox the implementation runs in (#506, and #541 for a
+#     package used from another);
+#   - the `warnings` an implementation returns, logged against the object
+#     (partcad/partcad#518, 0.7.175);
+#   - a new requirement pin reaching an existing sandbox, which is how the
+#     reportlab and svglib pins below take effect (partcad/partcad#450,
+#     0.7.147).
+#
+# `reproducible` does not raise the floor. PartCAD made it a protocol field in
+# 0.8.116 (partcad/partcad#682): it puts it in every request and coerces it to a
+# boolean. Before that, it reached the implementation as an ordinary parameter
+# whenever a layer of the file type's configuration stated it. The
+# implementation reads it with `request.get("reproducible")` and coerces it
+# itself, and a missing one is false. That is the same answer #682 gives a file
+# type that says nothing, so an older PartCAD draws the same files. What an
+# older one lacks is PartCAD's own file types meaning the same thing by the word
+# (see the comment above `render:`).
+partcad: ">=0.8.27"
+
 docs:
   intro: |
     Fully annotated multi-view technical drawings - orthographic views,
