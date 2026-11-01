@@ -24,6 +24,26 @@
 name: //pub/feature/render/draftwright
 desc: Technical drawings (PDF, SVG, DXF) produced by draftwright.
 
+# The PartCAD that makes `reproducible` a field of the output protocol
+# (partcad/partcad#682): it puts it in every request, whether or not the file
+# type declares it, and coerces it to a boolean. The implementation reads it
+# with no default of its own and hands it to draftwright's `reproducible=`, and
+# the comment above `render:` below says it means the same thing here as in
+# PartCAD's own file types. That is only true of a PartCAD that has the field.
+# An older one passes `reproducible` through as just another parameter, which
+# means nothing on PartCAD's side, and leaves it out of any request whose file
+# type does not state it.
+#
+# #682 shipped in 0.8.116; 0.8.123 is the first release published with it.
+#
+# Everything else this package needs is older:
+#   - a package implementing a file type itself, with `path:` on a `render:`
+#     type, and `-e` / `--options-package` (partcad/partcad#506, 0.7.174);
+#   - `pdf` among those types (partcad/partcad#541, 0.7.189);
+#   - the `warnings` an implementation returns, logged against the object
+#     (partcad/partcad#518, 0.7.175).
+partcad: ">=0.8.123"
+
 docs:
   intro: |
     Fully annotated multi-view technical drawings - orthographic views,
